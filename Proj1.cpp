@@ -1,14 +1,66 @@
 #include <iostream>
-#include <queue>
-#include <iterator>
 #include <stdlib.h>
 using namespace std;
+
+class List{
+
+	struct element {
+	  int value;
+	  struct element *next;
+	};
+
+	private:
+		struct element *list, *last;
+
+	public:
+		List(){ list = last = NULL; }
+		int addElement(int);
+		int removeHead();
+		void printList();
+
+};
+
+int List::addElement(int value){
+	if(list == NULL){
+		last = list = (struct element*) malloc (sizeof(element));
+		list->value = value;
+		list->next = NULL;
+	}
+	else {
+	    struct element *aux = last;
+        last = (struct element*) malloc (sizeof(element));
+        aux->next = last;
+        last->value = value;
+        last->next = NULL;
+	}
+	return value;
+}
+
+int List::removeHead(){
+    int value = list->value;
+	if(list == last){
+		free(list);
+		list = last = NULL;
+	}
+	else {
+	    struct element *aux = list;
+	    list = aux->next;
+	    free(aux);
+	}
+	return value;
+}
+
+void List::printList(){
+    for(struct element *aux = list; aux != NULL; aux = aux->next)
+        cout << aux->value << ", ";
+    cout << endl;
+}
 
 /** Node that represents a domino **/
 class Node {
     private:
         /** All possible knockdowns from this domino **/
-        queue<int> _paths;
+        List* _paths;
         /** If this domino was already knocked down **/
         bool _visited;
 
@@ -21,23 +73,21 @@ class Node {
         /** Knockdown this domino **/
         void visit() { _visited = true;}
         /** Get all possible knockdowns from this domino **/
-        queue<int> getPaths (){ return _paths; }
+        List* getPaths (){ return _paths; }
         /**  **/
         int removePath();
 };
 
 /** Add a Path to a node **/
 void Node::addPath(int value){
-    _paths.push(value);
+    _paths->addElement(value);
 }
 
 /** Remove and Return Path to a node **/
 int Node::removePath(){
-    if(_paths.empty())
+    if(_paths == NULL)
         return -1;
-    int answer = _paths.front();
-    _paths.pop();
-    return answer;
+    return _paths->removeHead();
 }
 
 
@@ -89,6 +139,7 @@ int DominoRun::cicle(){
         if(_currentNode == -1){
             _currentNode = nextUnvisitedNode();
             _manualDrops++;
+            cout << " --- Manual Drop on node : " << _currentNode+1 << "---";
         }
         cout << " , and going for: " << _currentNode+1 << endl;
     }
