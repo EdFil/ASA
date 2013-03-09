@@ -37,6 +37,8 @@ int List::addElement(int value){
 }
 
 int List::removeHead(){
+    if(list == NULL)
+        return -1  ;
     int value = list->value;
 	if(list == last){
 		free(list);
@@ -65,9 +67,9 @@ class Node {
         bool _visited;
 
     public:
-        Node(){ _visited = false;}
+        Node(){ _visited = false; _paths = new List(); }
         /** Add a possible knockdown from this domino **/
-        void addPath (int);
+        int addPath (int);
         /** Return if this domino was already knocked down **/
         bool isVisited() { return _visited; };
         /** Knockdown this domino **/
@@ -79,8 +81,8 @@ class Node {
 };
 
 /** Add a Path to a node **/
-void Node::addPath(int value){
-    _paths->addElement(value);
+int Node::addPath(int value){
+    return _paths->addElement(value);
 }
 
 /** Remove and Return Path to a node **/
@@ -147,6 +149,7 @@ int DominoRun::cicle(){
 
 int main ()
 {
+
     int numberCases;
     int *answers;
 
