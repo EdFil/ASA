@@ -1,96 +1,43 @@
 #include <iostream>
+#include <list>
 #include <stdlib.h>
+
+#define UNDIFINED -1
+
 using namespace std;
 
-class List{
+int _INDEX_ = 0;
+int _ID_ = 0;
 
-	struct element {
-	  int value;
-	  struct element *next;
-	};
-
-	private:
-		struct element *list, *last;
-
-	public:
-		List(){ list = last = NULL; }
-		int addElement(int);
-		int removeHead();
-		void printList();
-
-};
-
-int List::addElement(int value){
-	if(list == NULL){
-		last = list = (struct element*) malloc (sizeof(element));
-		list->value = value;
-		list->next = NULL;
-	}
-	else {
-	    struct element *aux = last;
-        last = (struct element*) malloc (sizeof(element));
-        aux->next = last;
-        last->value = value;
-        last->next = NULL;
-	}
-	return value;
-}
-
-int List::removeHead(){
-    if(list == NULL)
-        return -1  ;
-    int value = list->value;
-	if(list == last){
-		free(list);
-		list = last = NULL;
-	}
-	else {
-	    struct element *aux = list;
-	    list = aux->next;
-	    free(aux);
-	}
-	return value;
-}
-
-void List::printList(){
-    for(struct element *aux = list; aux != NULL; aux = aux->next)
-        cout << aux->value << ", ";
-    cout << endl;
-}
-
-/** Node that represents a domino **/
 class Node {
     private:
-        /** All possible knockdowns from this domino **/
-        List* _paths;
-        /** If this domino was already knocked down **/
-        bool _visited;
+        int _id;
+        list<Node*> _sucessores;
+        int _index;
+        int _lowlink;
 
     public:
-        Node(){ _visited = false; _paths = new List(); }
-        /** Add a possible knockdown from this domino **/
-        int addPath (int);
-        /** Return if this domino was already knocked down **/
-        bool isVisited() { return _visited; };
-        /** Knockdown this domino **/
-        void visit() { _visited = true;}
-        /** Get all possible knockdowns from this domino **/
-        List* getPaths (){ return _paths; }
-        /**  **/
-        int removePath();
+        Node();
+        bool isUndifined();
+        void setIndex(int);
+        int getIndex();
+        int getId();
+        void setLowlink(int);
+        int getLowlink();
+        void addSucessor (Node*);
+        list<Node*> *getSucessores();
 };
 
-/** Add a Path to a node **/
-int Node::addPath(int value){
-    return _paths->addElement(value);
-}
+Node::Node(){ _index = UNDIFINED; _id = _ID_++; }
+bool Node::isUndifined(){ return _index == UNDIFINED; }
+void Node::setIndex(int index){ _index = index; }
+int Node::getIndex(){ return _index; }
+int Node::getId(){ return _id; }
+void Node::setLowlink(int lowlink){ _lowlink = lowlink; }
+int Node::getLowlink(){ return _lowlink; }
+void Node::addSucessor(Node* sucessor){ _sucessores.push_front(sucessor); }
+list<Node*> *Node::getSucessores(){ return &_sucessores; }
 
-/** Remove and Return Path to a node **/
-int Node::removePath(){
-    if(_paths == NULL)
-        return -1;
-    return _paths->removeHead();
-}
 
 
 class DominoRun {
@@ -98,58 +45,82 @@ class DominoRun {
         int _numDominos;
         int _numConnections;
         int _manualDrops;
-        int _currentNode;
-        int _numVisited;
         Node* _dominoArray;
+        list<Node*> _S;
 
     public:
         DominoRun();
-        int nextUnvisitedNode();
-        int cicle();
-        int getManualDrops() { return _manualDrops; }
-
+        void incrementManualDrops();
+        int getManualDrops();
+        int getNumDominos();
+        int getNumConnections();
+        list<Node*> *getS();
+        void addToS(Node*);
+        bool isInS(Node*);
+        void findSCCs();
+        void strongConnect(Node*);
 };
 
 DominoRun::DominoRun(){
     int from, to;
     cin >> _numDominos >> _numConnections;
     _manualDrops = 1;
-    _currentNode = _numVisited = 0;
     _dominoArray = new Node[_numDominos];
     for(int i = 0; i < _numConnections; i++){
         cin >> from >> to;
-        _dominoArray[from-1].addPath(to-1);
+        _dominoArray[from-1].addSucessor(&_dominoArray[to-1]);
     }
 }
 
-int DominoRun::nextUnvisitedNode(){
-    for(int i = 0; i < _numDominos; i++){
-        if(!_dominoArray[i].isVisited())
-            return i;
+void DominoRun::addToS(Node* node){ _S.push_front(node); }
+void DominoRun::incrementManualDrops() { _manualDrops++; }
+int DominoRun::getManualDrops() { return _manualDrops; }
+int DominoRun::getNumDominos() { return _numDominos; }
+int DominoRun::getNumConnections() { return _numConnections; }
+list<Node*> *DominoRun::getS() { return &_S; }
+
+bool DominoRun::isInS(Node* node){
+    Node *aux;
+    for (list<Node*>::iterator it=_S.begin(); it != _S.end(); ++it){
+        aux = *it;
+        if(node->getId() == aux->getIndex())
+            return true;
     }
-    return -1;
+    return false;
 }
 
-int DominoRun::cicle(){
-    while(true){
-        cout << "Visiting Node: " << _currentNode+1;
-        _dominoArray[_currentNode].visit();
-        _numVisited++;
-        if(_numVisited >= _numDominos)
-            return _manualDrops;
-        _currentNode = _dominoArray[_currentNode].removePath();
-        if(_currentNode == -1){
-            _currentNode = nextUnvisitedNode();
-            _manualDrops++;
-            cout << " --- Manual Drop on node : " << _currentNode+1 << "---";
-        }
-        cout << " , and going for: " << _currentNode+1 << endl;
+void DominoRun::strongConnect(Node* node){
+    node->setIndex(_INDEX_);
+    node->setLowlink(_INDEX_);
+    _INDEX_++;
+    addToS(node);
+
+    for(unsigned int i = 0; i < _S.size(); i++){
+        if(_dominoArray[i].isUndifined()){
+            strongConnect(&_dominoArray[i]);
+            node->setIndex(min(node->getLowlink(), _dominoArray[i].getLowlink()));
+        } else if (isInS(&_dominoArray[i]))
+            node->setLowlink(min(node->getLowlink(), _dominoArray[i].getIndex()));
+    }
+
+    if(node->getLowlink() == node->getIndex()){
+        list<Node*> connected_components;
+        Node* sucessor;
+        do{
+            sucessor = _S.front();
+            _S.pop_front();
+            connected_components.push_front(sucessor);
+        }while(sucessor->getId() != node->getId());
     }
 }
 
-int main ()
-{
+void DominoRun::findSCCs(){
+    for(int i = 0; i < _numDominos; i++)
+        if(_dominoArray[i].isUndifined())
+            strongConnect(&_dominoArray[i]);
+}
 
+int main (){
     int numberCases;
     int *answers;
 
@@ -159,7 +130,8 @@ int main ()
 
     for(int i = 0; i < numberCases; i++){
         DominoRun *dominoCase = new DominoRun();
-        answers[i] = dominoCase->cicle();
+        dominoCase->findSCCs();
+        answers[i] = dominoCase->getManualDrops();
     }
 
     cout << "END" << endl;
