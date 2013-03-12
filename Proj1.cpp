@@ -1,4 +1,4 @@
-#include <iostream>
+  #include <iostream>
 #include <list>
 #include <stdlib.h>
 
@@ -6,8 +6,8 @@
 
 using namespace std;
 
-int _INDEX_ = 0;
-int _ID_ = 0;
+int _INDEX_ = 1;
+int _ID_ = 1;
 
 class Node {
     private:
@@ -95,12 +95,14 @@ void DominoRun::strongConnect(Node* node){
     _INDEX_++;
     addToS(node);
 
-    for(unsigned int i = 0; i < _S.size(); i++){
-        if(_dominoArray[i].isUndifined()){
-            strongConnect(&_dominoArray[i]);
-            node->setIndex(min(node->getLowlink(), _dominoArray[i].getLowlink()));
-        } else if (isInS(&_dominoArray[i]))
-            node->setLowlink(min(node->getLowlink(), _dominoArray[i].getIndex()));
+    Node * sucessor;
+    for(list<Node*>::iterator it = node->getSucessores()->begin(); it != node->getSucessores()->end(); it++){
+        sucessor = *it;
+        if(sucessor->isUndifined()){
+            strongConnect(sucessor);
+            node->setIndex(min(node->getLowlink(), sucessor->getLowlink()));
+        } else if (isInS(sucessor))
+            node->setLowlink(min(node->getLowlink(), sucessor->getIndex()));
     }
 
     if(node->getLowlink() == node->getIndex()){
@@ -111,6 +113,12 @@ void DominoRun::strongConnect(Node* node){
             _S.pop_front();
             connected_components.push_front(sucessor);
         }while(sucessor->getId() != node->getId());
+        cout << "Connected components -> ";
+        for(list<Node*>::iterator it = connected_components.begin(); it != connected_components.end(); it++){
+                sucessor = *it;
+                cout << "[" << sucessor->getId() << "] ";
+        }
+        cout << endl;
     }
 }
 
