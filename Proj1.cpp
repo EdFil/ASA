@@ -1,4 +1,4 @@
-  #include <iostream>
+#include <iostream>
 #include <list>
 #include <stdlib.h>
 
@@ -7,10 +7,14 @@
 using namespace std;
 
 int _INDEX_ = 1;
+int _SCC_INDEX_ = 1;
 int _ID_ = 1;
+
+class Scc;
 
 class Node {
     private:
+        Scc* _myScc;
         int _id;
         list<Node*> _sucessores;
         int _index;
@@ -26,6 +30,8 @@ class Node {
         int getLowlink();
         void addSucessor (Node*);
         list<Node*> *getSucessores();
+        void setScc(Scc*);
+        Scc *getScc();
 };
 
 Node::Node(){ _index = UNDIFINED; _id = _ID_++; }
@@ -37,8 +43,31 @@ void Node::setLowlink(int lowlink){ _lowlink = lowlink; }
 int Node::getLowlink(){ return _lowlink; }
 void Node::addSucessor(Node* sucessor){ _sucessores.push_front(sucessor); }
 list<Node*> *Node::getSucessores(){ return &_sucessores; }
+void Node::setScc(Scc *scc){ _myScc = scc; }
+Scc *Node::getScc(){ return _myScc; }
 
 
+
+class Scc{
+    private:
+        bool visited;
+        list<Node*> _Scc;
+        int index;
+
+    public:
+        Scc() { index = _SCC_INDEX_++; }
+        void addScc(Node*);
+        list<Node*>* getScc();
+        int getIndex() { return index; }
+        void visit() { visited = true; }
+        bool isVisited() { return visited; }
+};
+
+void Scc::addScc(Node* node){
+    _Scc.push_front(node);
+    node->setScc(this);
+}
+list<Node*> *Scc::getScc(){ return &_Scc; }
 
 class DominoRun {
     private:
@@ -47,6 +76,7 @@ class DominoRun {
         int _manualDrops;
         Node* _dominoArray;
         list<Node*> _S;
+        list<Scc*> _Scc;
 
     public:
         DominoRun();
@@ -59,12 +89,14 @@ class DominoRun {
         bool isInS(Node*);
         void findSCCs();
         void strongConnect(Node*);
+        list<Scc*> *getScc();
+        void printScc();
 };
 
 DominoRun::DominoRun(){
     int from, to;
     cin >> _numDominos >> _numConnections;
-    _manualDrops = 1;
+    _manualDrops = 0;
     _dominoArray = new Node[_numDominos];
     for(int i = 0; i < _numConnections; i++){
         cin >> from >> to;
@@ -74,10 +106,43 @@ DominoRun::DominoRun(){
 
 void DominoRun::addToS(Node* node){ _S.push_front(node); }
 void DominoRun::incrementManualDrops() { _manualDrops++; }
-int DominoRun::getManualDrops() { return _manualDrops; }
 int DominoRun::getNumDominos() { return _numDominos; }
 int DominoRun::getNumConnections() { return _numConnections; }
 list<Node*> *DominoRun::getS() { return &_S; }
+list<Scc*> *DominoRun::getScc() { return &_Scc; }
+
+int DominoRun::getManualDrops() {
+    list<Node*> *sucessores;
+    for(int i = 0; i < _numDominos; i++){
+        sucessores = _dominoArray[i].getSucessores();
+        for(list<Node*>::iterator it = sucessores->begin(); it != sucessores->end(); it++){
+            Node* sucessor = *it;
+            if(sucessor->getScc()->getIndex() != _dominoArray[i].getScc()->getIndex())
+                sucessor->getScc()->visit();
+        }
+    }
+    for(list<Scc*>::iterator it = _Scc.begin(); it != _Scc.end(); it++){
+        Scc *scc = *it;
+        if(!scc->isVisited())
+            _manualDrops++;
+    }
+
+    return _manualDrops;
+}
+
+void DominoRun::printScc() {
+    for(list<Scc*>::iterator Scc_it = _Scc.begin(); Scc_it != _Scc.end(); Scc_it++){
+        cout << "Scc -> ";
+        Scc *scc = *Scc_it;
+        list<Node*> *scc_list = scc->getScc();
+        for(list<Node*>::iterator node_it = scc_list->begin(); node_it != scc_list->end(); node_it++){
+            cout << "[";
+            Node* sucessor = *node_it;
+            cout << sucessor->getId() << "] " << "Visited = " << scc->isVisited();
+        }
+    cout << endl;
+    }
+}
 
 bool DominoRun::isInS(Node* node){
     Node *aux;
@@ -100,25 +165,21 @@ void DominoRun::strongConnect(Node* node){
         sucessor = *it;
         if(sucessor->isUndifined()){
             strongConnect(sucessor);
-            node->setIndex(min(node->getLowlink(), sucessor->getLowlink()));
+            node->setLowlink(min(node->getLowlink(), sucessor->getLowlink()));
         } else if (isInS(sucessor))
             node->setLowlink(min(node->getLowlink(), sucessor->getIndex()));
     }
 
     if(node->getLowlink() == node->getIndex()){
-        list<Node*> connected_components;
+        Scc* scc = new Scc();
         Node* sucessor;
         do{
             sucessor = _S.front();
             _S.pop_front();
-            connected_components.push_front(sucessor);
+            scc->addScc(sucessor);
+            sucessor->setScc(scc);
         }while(sucessor->getId() != node->getId());
-        cout << "Connected components -> ";
-        for(list<Node*>::iterator it = connected_components.begin(); it != connected_components.end(); it++){
-                sucessor = *it;
-                cout << "[" << sucessor->getId() << "] ";
-        }
-        cout << endl;
+        _Scc.push_front(scc);
     }
 }
 
@@ -139,12 +200,16 @@ int main (){
     for(int i = 0; i < numberCases; i++){
         DominoRun *dominoCase = new DominoRun();
         dominoCase->findSCCs();
-        answers[i] = dominoCase->getManualDrops();
+        cout << dominoCase->getManualDrops() << endl;
+//        dominoCase->printScc();
+//
+//        list<Scc*> *scc = dominoCase->getScc();
+//        list<Scc*>::iterator it, aux;
+//        for(it = scc->begin(); it != scc->end(); it++)
+//
     }
 
-    cout << "END" << endl;
-    for(int i = 0; i < numberCases; i++)
-        cout << answers[i] << endl;
+
 
   return 0;
 }
