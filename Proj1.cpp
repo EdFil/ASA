@@ -148,7 +148,7 @@ bool DominoRun::isInS(Node* node){
     Node *aux;
     for (list<Node*>::iterator it=_S.begin(); it != _S.end(); ++it){
         aux = *it;
-        if(node->getId() == aux->getIndex())
+        if(node->getIndex() == aux->getIndex())
             return true;
     }
     return false;
@@ -208,8 +208,6 @@ int main (){
 //        for(it = scc->begin(); it != scc->end(); it++)
 //
     }
-
-
 
   return 0;
 }
