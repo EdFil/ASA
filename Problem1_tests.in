@@ -1,0 +1,28 @@
+1
+7 8
+1 2
+2 3
+3 4
+5 6
+6 7
+7 5
+4 7
+
+How to
+a
+b c
+x y
+x y
+...
+
+a - Number of tests
+b - number of dominos
+c - number of x y connections
+x y - domino x takes down y
+
+
+
+
+
+
+
